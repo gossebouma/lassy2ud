@@ -559,7 +559,11 @@ declare function local:dependency_label($node as element(node)) as xs:string
   
     
     else if ( $node[@rel="det"] ) 
-         then if ( $node/@ud:pos = ("DET","PROPN","NOUN","ADJ","PRON","ADV","X")  ) then "det"   (: meer :)(: genoeg :) (:the :)
+         (: zijn boek, diens boek, ieders boek, aller landen, Ron's probleem, Fidel Castro's belang :)
+         then if (  $node[@ud:pos = "PRON" and @vwtype="bez"] or
+         	        $node[@ud:pos = ("PRON","PROPN") and @naamval="gen"] or
+                    $node[@cat="mwu" and node[@spectype="deeleigen"]]) then "nmod:poss"
+         else  if ( $node/@ud:pos = ("DET","PROPN","NOUN","ADJ","PRON","ADV","X")  ) then "det"   (: meer :)(: genoeg :) (:the :)
          else if ( $node/@cat = ("mwu","np","pp","ap","detp","smain") )                 then "det" 
          (: tussen 5 en 6 .., needs more principled solution :)
          (: nog meer mensen dan anders  :)
@@ -622,8 +626,8 @@ declare function local:dependency_label($node as element(node)) as xs:string
          (: modification of nomimal heads :)
          (: pc and ld occur in nominalizations :)
          then if ($node[@cat="pp"]/node[@rel="vc"]) then "acl"  (: pp containing a clause :) 
-         else if ($node[@cat=("pp","np","conj","mwu") or @ud:pos=("NOUN","PRON","PROPN","X","PUNCT","SYM","INTJ") ]) then "nmod"
-         else if ($node[@ud:pos="ADJ" or @cat="ap"])   then "amod"
+         else if ($node[@ud:pos="ADJ" or @cat="ap" or node[@cat="conj" and node[@ud:POS="ADJ" or @cat="ap"] ]])   then "amod"
+		 else if ($node[@cat=("pp","np","conj","mwu") or @ud:pos=("NOUN","PRON","PROPN","X","PUNCT","SYM","INTJ") ]) then "nmod"
          else if ($node[@ud:pos="NUM"])                then "nummod"
          else if ($node[@cat="detp"])                then "det" (: [detp niet veel] meer error? :)
          else if ($node[@cat=("rel","whrel")])         then "acl:relcl"  
