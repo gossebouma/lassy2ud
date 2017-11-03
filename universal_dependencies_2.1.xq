@@ -63,8 +63,11 @@ declare function local:auxiliary1($node as element(node)) as xs:string
   then "cop"    
   else if ( $node[@pt="ww" and @rel="hd" and (@lemma="zijn" or @lemma="worden") and 
                   ( @sc="passive"  or 
-                    ../node[@rel="su"]/@index = ../node[@rel="vc"]/node[@rel="obj1"]/@index or 
-                    not(../node[@rel="su"])  
+                  	 ( ../node[@rel="vc"] and 
+                        ( ../node[@rel="su"]/@index = ../node[@rel="vc"]/node[@rel="obj1"]/@index or 
+                         not(../node[@rel="su"]) 
+                         )  
+                     ) 
                   ) ] )           
   then "aux:pass"    
   else if ($node[@pt="ww" and @rel="hd" and
@@ -286,7 +289,7 @@ declare function local:dependency_relation($node as element(node)) as attribute(
     }
     ,
     attribute ud:HeadPosition {
-    if ($node[@rel="hd" and @ud:pos="ADP"] ) 
+    if ($node[@rel="hd" and (@ud:pos="ADP" or ../@cat="pp") ] )  (: vol vertrouwen :)
     then  if ($node/../node[@rel= ("obj1","vc","se","me")] ) 
           then     local:internal_head_position(($node/../node[@rel= ("obj1","vc","se","me")])[1])
           else if ($node/../node[@rel="predc"] ) (: met als titel :)
@@ -294,9 +297,11 @@ declare function local:dependency_relation($node as element(node)) as attribute(
                else if ($node/../node[@rel="pobj1"] )
                     then local:internal_head_position(($node/../node[@rel="pobj1"])[1] )
                         (: in de eerste rond --> typo in LassySmall/Wiki , binnen en [advp later buiten ]:)
-                    else if ($node[../@cat=("ap","ppart","np","advp")])    
-                         then local:external_head_position($node/..)
-                         else "ERROR_NO_HEAD_FOUND"
+                    else (: if ($node[../@cat=("ap","ppart","np","advp")])    
+                         then 
+                         :) local:external_head_position($node/..)
+
+                         (: else "ERROR_NO_HEAD_FOUND" :)
     
    
 
@@ -313,7 +318,8 @@ declare function local:dependency_relation($node as element(node)) as attribute(
     then     local:external_head_position($node/..)
 
     else if ($node[@rel="mod" and not(../node[@rel=("obj1","pobj1","se","me")]) and (../@cat="pp" or ../node[@rel="hd" and @ud:pos="ADP"])])   (: mede op grond hiervan :)
-    then     local:external_head_position($node/..)
+    then     (: local:external_head_position($node/..) :)
+             local:internal_head_position($node/../node[@rel="hd"])  (: daarom dus :)
     
     
     else if ($node[@rel=("cnj","dp","mwp")])
@@ -336,14 +342,16 @@ declare function local:dependency_relation($node as element(node)) as attribute(
               else if ($node[@ud:pos="PUNCT" and count(../node) > 1]) 
               then if ($node/../node[not(@ud:pos="PUNCT")] )
                    then local:internal_head_position($node/../node[not(@ud:pos="PUNCT")][1])
-                   else if ( $node[@begin=../@begin] ) 
+                   else if ( local:leftmost($node/../node)/@begin = $node/@begin ) 
                         then local:external_head_position($node/..)
                         else "1" (: ie end of first punct token :)
               else if ($node/..) then local:external_head_position($node/..)
                    else "ERROR_NO_HEAD_FOUND"
          
     else if ($node[@rel=("hd","nucl","body") ] ) 
-    then    local:external_head_position($node/..)
+    then if ($node/../node[@rel="hd"]/number(@begin) < $node/number(@begin) ) 
+         then local:internal_head_position($node/../node[@rel="hd" and number(@begin) < $node/number(@begin)] ) (: dan moet je moet :)
+         else  local:external_head_position($node/..)
        
     else if ( $node[@rel="predc"] ) 
          then if   ($node/../node[@rel=("obj1","se")] and $node/../node[@rel="hd"] )
@@ -357,9 +365,10 @@ declare function local:dependency_relation($node as element(node)) as attribute(
     else if ($node[@rel="vc"]) 
        then if ($node/../node[@rel="hd" and @ud:pos="AUX"] and not($node/../node[@rel="predc"]) )
             then local:external_head_position($node/..)
-            else if ($node/../node[@rel="hd" and @ud:pos="ADP"])
+            else if ($node/../@cat="pp")  (: eraan dat .. :)
                  then local:external_head_position($node/..)
             else local:internal_head_position($node/..)
+            
 
     else if ($node[@rel="whd" or @rel="rhd"])
     then if ($node[@index]) 
@@ -480,13 +489,28 @@ declare function local:external_head_position($nodes as element(node)*) as xs:st
 } ;
 
 declare function local:external_head_position1($node as element(node)) as xs:string
-{ if      ( $node[@rel=("hd","body","nucl")] ) 
-  then    local:external_head_position($node/..)
+{  if ($node[@rel="hd" and (@ud:pos="ADP" or ../@cat="pp") ] )  (: vol vertrouwen :)
+    then  if ($node/../node[@rel= ("obj1","vc","se","me")] ) 
+          then     local:internal_head_position(($node/../node[@rel= ("obj1","vc","se","me")])[1])
+          else if ($node/../node[@rel="predc"] ) (: met als titel :)
+               then     local:internal_head_position(($node/../node[@rel="predc"])[1])
+               else if ($node/../node[@rel="pobj1"] )
+                    then local:internal_head_position(($node/../node[@rel="pobj1"])[1] )
+                        (: in de eerste rond --> typo in LassySmall/Wiki , binnen en [advp later buiten ]:)
+                    else (: if ($node[../@cat=("ap","ppart","np","advp")])    
+                         then 
+                         :) local:external_head_position($node/..)
+
+                         (: else "ERROR_NO_HEAD_FOUND" :)
+
+
+  else if      ( $node[@rel=("hd","body","nucl")] ) 
+       then    local:external_head_position($node/..)
   
   else if ($node[@rel="predc"] )
         then if   ($node/../node[@rel=("obj1","se")] and $node/../node[@rel="hd"])
              then local:internal_head_position($node/../node[@rel="hd"])
-             else if  ( $node/..[@cat="np" and node[@rel="hd" and (@cat or @word) and not(@ud:pos=("COP","AUX") ) ]  ]  )  (: reduced relatives , check head is not empty :)
+             else if  ( $node/..[@cat=("np","ap") and node[@rel="hd" and (@cat or @word) and not(@ud:pos=("COP","AUX") ) ]  ]  )  (: reduced relatives , check head is not empty :)
              then local:internal_head_position($node/../node[@rel="hd"])
              else local:external_head_position($node/..)
 
@@ -515,7 +539,7 @@ declare function local:external_head_position1($node as element(node)) as xs:str
   else if ($node[@rel="vc"]) 
        then if ($node/../node[@rel="hd" and @ud:pos="AUX"] and not($node/../node[@rel="predc"]) )
             then local:external_head_position($node/..)
-            else if ($node/../node[@rel="hd" and @ud:pos="ADP"])
+            else if ($node/../@cat="pp")
                  then local:external_head_position($node/..)
             else local:internal_head_position($node/..)
             
@@ -545,7 +569,9 @@ declare function local:dependency_label($node as element(node)) as xs:string
               else "iobj"
     else if ($node[@rel="pobj1"])                   then "expl"
     else if ($node[@rel="predc"]) 
-         then if ( not ($node/../node[@rel="obj1" or @rel="se"] or $node/../node[@rel="hd" and not(@ud:pos="AUX")]) ) then local:dependency_label($node/..) else "xcomp"   
+         then if ( $node/../node[@rel="obj1" or @rel="se"] or $node/../node[@rel="hd" and not(@ud:pos="AUX")] ) 
+              then "xcomp"
+              else local:dependency_label($node/..) 
          (: hack for now: de keuze is gauw gemaakt :)
          (: was amod, is this more accurate?? :)
          (: examples of secondary predicates under xcomp suggests so :)
@@ -578,7 +604,7 @@ declare function local:dependency_label($node as element(node)) as xs:string
                                                     else "ERROR_NO_LABEL_DET"
               
     else if ($node[@rel="obj1" or @rel="me"] )
-         then if ( $node/../node[@rel="hd" and @ud:pos="ADP"] )
+         then if ( $node/../@cat="pp" or $node/../node[@rel="hd" and @ud:pos="ADP"]) (: vol vertrouwen , heel de geschiedenis door (cat=ap!) :)
               then local:dependency_label($node/..)  
 	      else "obj"
 						    
@@ -599,7 +625,7 @@ declare function local:dependency_label($node as element(node)) as xs:string
               else                                       "conj"       
               
      else if ($node[@rel="dp"])    
-         then if   (deep-equal($node,$node/../node[@rel="dp"][1]))
+         then if   (deep-equal($node,local:leftmost($node/../node[@rel="dp"])) )
               then local:dependency_label($node/..)
               else                                      "parataxis"      
     else if ($node[@rel="tag"] )                   then "parataxis"
@@ -671,8 +697,8 @@ declare function local:dependency_label($node as element(node)) as xs:string
          
          
     else if ( $node[@rel=("rhd","whd")] ) 
-         then if ( $node/../node[@rel="body"]//node/@index = $node/@index ) 
-              then local:non_local_dependency_label($node,($node/../node[@rel="body"]//node[@index = $node/@index])[1])
+         then if ( $node/../node[@rel="body"]//node/number(@index) = $node/number(@index) ) 
+              then local:non_local_dependency_label($node,($node/../node[@rel="body"]//node[number(@index) = $node/number(@index)])[1])
               else "advmod"  (: [whq waarom jij] :)                                                                             
        
     else if ($node[@rel="body"])
@@ -705,6 +731,9 @@ declare function local:dependency_label($node as element(node)) as xs:string
     
     else if ($node[@rel="hd"])
          then if ($node[@ud:pos="ADP" and not(../node[@rel="pc"]) ] )                then "case"   (: er blijft weinig over van het lijk : over heads a predc and has pc as sister  :)
+         else if ($node[(@ud:pos=("ADJ","X","ADV") or @cat="mwu") and ../@cat="pp" and ../node[@rel=("obj1","se","vc")]]) then "case" (: vol vertrouwen i, Ad U3... , op het gebied van :)
+         else if ($node/../node[@rel="hd"]/number(@begin) < $node/number(@begin) )
+              then "conj"
               else local:dependency_label($node/..)
               
     else    					        "ERROR_NO_LABEL"
@@ -715,7 +744,7 @@ declare function local:non_local_dependency_label($head as element(node), $gap a
   else if ($gap[@rel="obj1"])  then "obj"
   else if ($gap[@rel="obj2"])  then "iobj"
   else if ($gap[@rel="me"  ])  then local:determine_nominal_mod_label($gap)
-  else if ($gap[@rel="predc"]) then local:dependency_label($gap/..)
+  else if ($gap[@rel="predc"]) then local:dependency_label($gap)
   else if ($gap[@rel= ("pc", "ld")] )
        then if ($head/node[@rel="obj1"])                       then "nmod"
             else if ($head[@ud:pos=("ADV", "ADP") or @cat=("advp","ap")])    then "advmod" (: waar precies zit je .. :)
