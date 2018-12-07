@@ -9,12 +9,16 @@ Paper:
 
 in: Proceedings of the Universal Dependencies Workshop, Gothenburg, 22 May 2017
 
+* Gosse Bouma, Comparing Two Methods for Adding Enhanced Universal Dependencies to UD Treebanks, to appear in: Proceedings of the 17th International Workshop on Treebanks and Linguistic Theory, Oslo, 2018
+
 ## usage
+
+For universal_dependencies.xq :
 
 Example with [saxon](http://www.saxonica.com):
 
 ```sh
-saxon DIR=collection.xml MODE=conll ENHANCED=yes universal_dependencies_2.3.xq
+saxon DIR=collection.xml LIB=no MODE=conll ENHANCED=yes universal_dependencies_2.3.xq
 ```
 
 Example with [xqilla](http://xqilla.sourceforge.net):
